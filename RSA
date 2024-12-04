@@ -3,122 +3,77 @@ import java.util.Random;
 import java.util.StringTokenizer;
 import java.util.Vector;
 import java.util.Scanner;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class RSA {
-
     private static final String TOKEN = ";";
 
     public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-
+        Scanner inp = new Scanner(System.in);
         System.out.println("Inserisci la stringa da crittografare:");
-        String data = scanner.nextLine();
+        String stringa = inp.nextLine();
 
         Random rng = new Random();
 
-        BigInteger fPrime = BigInteger.probablePrime(Long.BYTES, rng);
-        BigInteger sPrime = BigInteger.probablePrime(Long.BYTES, rng);
+        BigInteger p = BigInteger.probablePrime(1024, rng);
+        BigInteger q = BigInteger.probablePrime(1024, rng);
+        BigInteger n = p.multiply(q);
+        BigInteger v = q.subtract(BigInteger.ONE).multiply(p.subtract(BigInteger.ONE));
+        BigInteger e = coPrimo(v);
+        BigInteger d = e.modInverse(v);
 
-        while (true) {
-            if (fPrime.compareTo(sPrime) != 0) {
-                if (sPrime.isProbablePrime(1)) {
-                    if (fPrime.isProbablePrime(1)) {
-                        long min = 30000;
-                        if (sPrime.multiply(fPrime).compareTo(BigInteger.valueOf(min)) > 0) {
-                            break;
-                        }
-                    } else {
-                        fPrime = BigInteger.probablePrime(Long.BYTES, rng);
-                    }
-                } else {
-                    sPrime = BigInteger.probablePrime(Long.BYTES, rng);
-                }
-            } else {
-                fPrime = BigInteger.probablePrime(Long.BYTES, rng);
-                sPrime = BigInteger.probablePrime(Long.BYTES, rng);
-            }
-        }
+        System.out.println("P: " + p + "\n Q: " + q + "\n n: " + n + "\n V: " + v + "\n e: " + e + "\n d: " + d);
 
-        System.out.println((sPrime.multiply(fPrime)).compareTo(new BigInteger("1000000")) >= 0);
+        String stringaCriptata = encrypt(stringa, e, n);
+        System.out.println("Stringa criptata: " + stringaCriptata);
 
-        BigInteger n = fPrime.multiply(sPrime);
+        String stringaDecriptata = decrypt(stringaCriptata, d, n);
+        System.out.println("Stringa decriptata: " + stringaDecriptata);
 
-        BigInteger z = sPrime.subtract(BigInteger.ONE).multiply(fPrime.subtract(BigInteger.ONE));
-
-        BigInteger e = coPrime(z);
-
-        BigInteger d;
-
-        int i = 2;
-        while ((e.multiply(BigInteger.valueOf(i)).mod(z).compareTo(BigInteger.ONE)) != 0) {
-            i = i + ThreadLocalRandom.current().nextInt(1, 2);
-        }
-
-        d = BigInteger.valueOf(i);
-
-        System.out.println("FirstPrime --> " + fPrime + " secondPrime --> " + sPrime + " n --> " + n + " z --> " + z
-                + " e --> " + e + " d --> " + d);
-
-        String encryptedData = encrypt(data, e, n);
-
-        System.out.println("ENCRYPTED --> " + encryptedData);
-
-        decrypt(encryptedData, d, n);
-
-        scanner.close();
+        inp.close();
     }
 
-    private static String encrypt(String data, BigInteger e, BigInteger n) {
-        Vector<BigInteger> intVector = new Vector<>();
-        StringBuilder intList = new StringBuilder();
+    private static String encrypt(String stringa, BigInteger e, BigInteger n) {
+    Vector<BigInteger> intVector = new Vector<>();
+    StringBuilder lista = new StringBuilder();
 
-        char[] charRawVector = new char[data.length()];
-        data.getChars(0, data.length(), charRawVector, 0);
-
-        for (char character : charRawVector) {
-            int i = (int) character;
-            if (i != 13) {
-                BigInteger c = new BigInteger(Integer.toString(i)).modPow(e, n);
-                intVector.add(new BigInteger(Integer.toString(i)));
-                intList.append(c);
-                intList.append(TOKEN);
-            } else {
-                intList.append("\n");
-            }
+    char[] charRawVector = new char[stringa.length()];
+    stringa.getChars(0, stringa.length(), charRawVector, 0);
+    
+    for (char character : charRawVector) {
+        int i = (int) character;
+        if (i != 13) {
+            BigInteger c = new BigInteger(Integer.toString(i)).modPow(e, n);
+            intVector.add(new BigInteger(Integer.toString(i)));
+            lista.append(c);
+            lista.append(TOKEN);
+        } else {
+            lista.append("\n");
         }
-
-        System.out.println("ENCRYPT --> " + intVector);
-        return intList.toString();
     }
 
-    private static void decrypt(String data, BigInteger d, BigInteger n) {
-        StringTokenizer tokenizer = new StringTokenizer(data, TOKEN);
+    return lista.toString();
+}
 
-        Vector<BigInteger> intVector = new Vector<>();
+    private static String decrypt(String stringa, BigInteger d, BigInteger n) {
+        StringTokenizer token = new StringTokenizer(stringa, TOKEN);
         StringBuilder stringList = new StringBuilder();
 
-        while (tokenizer.hasMoreTokens()) {
-            data = tokenizer.nextToken();
-            if (!data.isEmpty()) {
-                int i = Integer.parseInt(data);
-                BigInteger m = new BigInteger(Integer.toString(i)).modPow(d, n);
-                intVector.add(m);
-                stringList.append((char) m.longValueExact());
-            } else {
-                stringList.append("\n");
+        while (token.hasMoreTokens()) {
+            String s = token.nextToken();
+            if (!s.isEmpty()) {
+                BigInteger c = new BigInteger(s);
+                BigInteger m = c.modPow(d, n);
+                stringList.append((char) m.intValue());
             }
         }
 
-        System.out.println("DECRYPTED --> " + intVector);
-        System.out.println("CHAR : DECRYPTED --> " + stringList);
+        return stringList.toString();
     }
-
-    private static BigInteger coPrime(BigInteger fPrime) {
-        BigInteger coPrime;
+    private static BigInteger coPrimo(BigInteger p) {
+        BigInteger coPrimo;
         Random rng = new Random();
-        while ((coPrime = BigInteger.probablePrime(Long.BYTES, rng)).compareTo(fPrime) > 0) {
+        while ((coPrimo = BigInteger.probablePrime(1024, rng)).compareTo(p) > 0) {
         }
-        return coPrime;
+        return coPrimo;
     }
 }
